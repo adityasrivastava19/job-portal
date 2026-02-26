@@ -1,3 +1,4 @@
+// Cloudinary configuration for media uploads
 const cloudinary = require('cloudinary').v2;
 
 cloudinary.config({

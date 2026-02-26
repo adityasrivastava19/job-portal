@@ -1,3 +1,4 @@
+// MongoDB connection configuration and index maintenance
 const mongoose = require('mongoose');
 
 const connectDB = async () => {

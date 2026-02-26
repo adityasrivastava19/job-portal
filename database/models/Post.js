@@ -1,3 +1,4 @@
+// Mongoose schema for Posts including likes and comments
 const mongoose = require('mongoose');
 
 const postSchema = new mongoose.Schema({
