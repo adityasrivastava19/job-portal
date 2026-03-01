@@ -3,7 +3,8 @@ const Post = require('../database/models/Post');
 
 const createPost = async (req, res) => {
     try {
-        const { text, image } = req.body;
+        const { text } = req.body;
+        const image = req.file ? req.file.path : '';
         const newPost = new Post({ user: req.user.id, text, image });
         await newPost.save();
         res.status(201).json(newPost);
@@ -14,7 +15,10 @@ const createPost = async (req, res) => {
 
 const getPosts = async (req, res) => {
     try {
-        const posts = await Post.find().populate('user', 'username profilePicture').sort({ createdAt: -1 });
+        const posts = await Post.find()
+            .populate('user', 'username profilePicture')
+            .populate('comments.user', 'username profilePicture')
+            .sort({ createdAt: -1 });
         res.json(posts);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -42,10 +46,58 @@ const addComment = async (req, res) => {
         const post = await Post.findById(req.params.id);
         post.comments.push({ user: req.user.id, text });
         await post.save();
-        res.json(post);
+
+        const updatedPost = await Post.findById(req.params.id)
+            .populate('user', 'username profilePicture')
+            .populate('comments.user', 'username profilePicture');
+        res.json(updatedPost);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-module.exports = { createPost, getPosts, likePost, addComment };
+const deletePost = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+        if (post.user.toString() !== req.user.id) return res.status(403).json({ message: 'Unauthorized' });
+
+        await Post.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Post deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getUserPosts = async (req, res) => {
+    try {
+        const posts = await Post.find({ user: req.params.userId })
+            .populate('user', 'username profilePicture')
+            .populate('comments.user', 'username profilePicture')
+            .sort({ createdAt: -1 });
+        res.json(posts);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getFeed = async (req, res) => {
+    try {
+        const currentUser = await User.findById(req.user.id);
+        const following = currentUser.following;
+        const posts = await Post.find({
+            $or: [
+                { user: { $in: following } },
+                { user: req.user.id }
+            ]
+        })
+            .populate('user', 'username profilePicture')
+            .populate('comments.user', 'username profilePicture')
+            .sort({ createdAt: -1 });
+        res.json(posts);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = { createPost, getPosts, likePost, addComment, deletePost, getUserPosts, getFeed };
