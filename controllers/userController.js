@@ -6,6 +6,13 @@ const jwt = require('jsonwebtoken');
 const registerUser = async (req, res) => {
     try {
         const { username, email, password } = req.body;
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+        if (existingUser) {
+            return res.status(400).json({ message: 'User with this email or username already exists' });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({ username, email, password: hashedPassword });
         await newUser.save();
@@ -42,7 +49,19 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
     try {
         const { username, bio } = req.body;
-        let updateData = { username, bio };
+
+        // Check if username is taken by another user
+        if (username) {
+            const existingUser = await User.findOne({ username, _id: { $ne: req.user.id } });
+            if (existingUser) {
+                return res.status(400).json({ message: 'Username is already taken' });
+            }
+        }
+
+        let updateData = {};
+        if (username) updateData.username = username;
+        if (bio) updateData.bio = bio;
+
         if (req.file) {
             updateData.profilePicture = req.file.path;
         }
@@ -55,6 +74,10 @@ const updateProfile = async (req, res) => {
 
 const followUser = async (req, res) => {
     try {
+        if (req.params.id === req.user.id) {
+            return res.status(400).json({ message: 'You cannot follow yourself' });
+        }
+
         const userToFollow = await User.findById(req.params.id);
         const currentUser = await User.findById(req.user.id);
 
@@ -83,10 +106,14 @@ const searchUsers = async (req, res) => {
     try {
         const { query } = req.query;
         if (!query) return res.status(400).json({ message: 'Query is required' });
+
+        // Escape regex special characters
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
         const users = await User.find({
             $or: [
-                { username: { $regex: query, $options: 'i' } },
-                { email: { $regex: query, $options: 'i' } }
+                { username: { $regex: escapedQuery, $options: 'i' } },
+                { email: { $regex: escapedQuery, $options: 'i' } }
             ]
         }).select('username profilePicture bio');
         res.json(users);

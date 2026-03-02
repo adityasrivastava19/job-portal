@@ -1,5 +1,7 @@
 // Post controller handling feed and social interactions
 const Post = require('../database/models/Post');
+const User = require('../database/models/User');
+
 
 const createPost = async (req, res) => {
     try {
@@ -28,6 +30,8 @@ const getPosts = async (req, res) => {
 const likePost = async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+
         if (post.likes.includes(req.user.id)) {
             post.likes = post.likes.filter(id => id.toString() !== req.user.id.toString());
         } else {
@@ -44,6 +48,8 @@ const addComment = async (req, res) => {
     try {
         const { text } = req.body;
         const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+
         post.comments.push({ user: req.user.id, text });
         await post.save();
 
@@ -84,6 +90,8 @@ const getUserPosts = async (req, res) => {
 const getFeed = async (req, res) => {
     try {
         const currentUser = await User.findById(req.user.id);
+        if (!currentUser) return res.status(404).json({ message: 'User not found' });
+
         const following = currentUser.following;
         const posts = await Post.find({
             $or: [
