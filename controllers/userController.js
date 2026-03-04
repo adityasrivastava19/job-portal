@@ -24,8 +24,14 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        const { identifier, email, password } = req.body;
+        // Support both 'email' and 'identifier' (which can be email or username)
+        const loginQuery = identifier
+            ? { $or: [{ email: identifier }, { username: identifier }] }
+            : { email: email };
+
+        const user = await User.findOne(loginQuery);
+
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
@@ -83,7 +89,9 @@ const followUser = async (req, res) => {
 
         if (!userToFollow || !currentUser) return res.status(404).json({ message: 'User not found' });
 
-        if (currentUser.following.includes(userToFollow._id)) {
+        const isFollowing = currentUser.following.some(id => id.toString() === userToFollow._id.toString());
+
+        if (isFollowing) {
             // Unfollow
             currentUser.following = currentUser.following.filter(id => id.toString() !== userToFollow._id.toString());
             userToFollow.followers = userToFollow.followers.filter(id => id.toString() !== currentUser._id.toString());

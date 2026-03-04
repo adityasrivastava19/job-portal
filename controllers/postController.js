@@ -6,10 +6,15 @@ const User = require('../database/models/User');
 const createPost = async (req, res) => {
     try {
         const { text } = req.body;
+        if (!text || text.trim() === '') {
+            return res.status(400).json({ message: 'Post text is required' });
+        }
         const image = req.file ? req.file.path : '';
         const newPost = new Post({ user: req.user.id, text, image });
         await newPost.save();
-        res.status(201).json(newPost);
+
+        const populatedPost = await Post.findById(newPost._id).populate('user', 'username profilePicture');
+        res.status(201).json(populatedPost);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -32,8 +37,10 @@ const likePost = async (req, res) => {
         const post = await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ message: 'Post not found' });
 
-        if (post.likes.includes(req.user.id)) {
-            post.likes = post.likes.filter(id => id.toString() !== req.user.id.toString());
+        const isLiked = post.likes.some(id => id.toString() === req.user.id);
+
+        if (isLiked) {
+            post.likes = post.likes.filter(id => id.toString() !== req.user.id);
         } else {
             post.likes.push(req.user.id);
         }
