@@ -16,7 +16,18 @@ const registerUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({ username, email, password: hashedPassword });
         await newUser.save();
-        res.status(201).json({ message: 'User registered successfully' });
+        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        res.status(201).json({
+            message: 'User registered successfully',
+            token,
+            user: {
+                _id: newUser._id,
+                username: newUser.username,
+                email: newUser.email,
+                profilePicture: newUser.profilePicture,
+                bio: newUser.bio
+            }
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -36,7 +47,7 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token, user: { id: user._id, username: user.username, email: user.email, profilePicture: user.profilePicture, bio: user.bio } });
+        res.json({ token, user: { _id: user._id, username: user.username, email: user.email, profilePicture: user.profilePicture, bio: user.bio } });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
