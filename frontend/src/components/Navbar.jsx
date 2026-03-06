@@ -4,12 +4,25 @@ import { useAuth } from '../context/AuthContext';
 import { Home, User, LogOut, Search, Bell, MessageSquare, Linkedin } from 'lucide-react';
 
 const Navbar = () => {
+    const [searchQuery, setSearchQuery] = React.useState('');
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    const handleSearch = (e) => {
+        if (e.key === 'Enter' && searchQuery.trim()) {
+            navigate(`/search?q=${searchQuery}`);
+            setSearchQuery('');
+        }
+    };
+
+    const comingSoon = (e) => {
+        e.preventDefault();
+        import('react-hot-toast').then(m => m.toast('Feature coming soon!', { icon: '🚧' }));
     };
 
     if (!user) return null;
@@ -50,15 +63,18 @@ const Navbar = () => {
                         <input
                             type="text"
                             placeholder="Search"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={handleSearch}
                             style={{ border: 'none', background: 'none', width: '100%' }}
                         />
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', color: 'var(--text-muted)' }}>
                         <Link to="/" className="nav-icon" title="Home"><Home /></Link>
-                        <Link to="/network" className="nav-icon" title="My Network"><Search /></Link>
-                        <Link to="/messages" className="nav-icon" title="Messaging"><MessageSquare /></Link>
-                        <Link to="/notifications" className="nav-icon" title="Notifications"><Bell /></Link>
+                        <Link to="/network" onClick={comingSoon} className="nav-icon" title="My Network"><Search /></Link>
+                        <Link to="/messages" onClick={comingSoon} className="nav-icon" title="Messaging"><MessageSquare /></Link>
+                        <Link to="/notifications" onClick={comingSoon} className="nav-icon" title="Notifications"><Bell /></Link>
                         <Link to={`/profile/${user._id}`} className="nav-icon" title="Profile">
                             {user.profilePicture ? (
                                 <img

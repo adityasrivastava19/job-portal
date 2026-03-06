@@ -15,6 +15,7 @@ const Profile = () => {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({});
+    const [profileFile, setProfileFile] = useState(null);
 
     const isOwnProfile = !id || id === currentUser?._id;
     const profileId = id || currentUser?._id;
@@ -49,13 +50,27 @@ const Profile = () => {
         }
     };
 
+    const handleFileChange = (e) => {
+        if (e.target.files[0]) {
+            setProfileFile(e.target.files[0]);
+        }
+    };
+
     const handleUpdate = async (e) => {
         e.preventDefault();
+        const formData = new FormData();
+        formData.append('username', editData.username);
+        formData.append('bio', editData.bio);
+        if (profileFile) {
+            formData.append('profilePicture', profileFile);
+        }
+
         try {
-            const response = await api.put('/users/profile', editData);
+            const response = await api.put('/users/profile', formData);
             setProfileUser(response.data);
             if (isOwnProfile) setCurrentUser(response.data);
             setIsEditing(false);
+            setProfileFile(null);
             toast.success('Profile updated');
         } catch (error) {
             toast.error('Update failed');
@@ -70,16 +85,46 @@ const Profile = () => {
                 <div style={{ height: '200px', background: 'linear-gradient(90deg, #0a66c2 0%, #004182 100%)' }}></div>
                 <div style={{ padding: '0 24px 24px', position: 'relative' }}>
                     <div style={{ position: 'absolute', top: '-80px', left: '24px' }}>
-                        <img
-                            src={profileUser.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profileUser.username || 'user'}`}
-                            style={{ width: '160px', height: '160px', borderRadius: '50%', border: '4px solid white', background: 'white', objectFit: 'cover' }}
-                        />
+                        <div style={{ position: 'relative' }}>
+                            <img
+                                src={profileUser.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profileUser.username || 'user'}`}
+                                style={{ width: '160px', height: '160px', borderRadius: '50%', border: '4px solid white', background: 'white', objectFit: 'cover' }}
+                            />
+                            {isOwnProfile && isEditing && (
+                                <label htmlFor="profile-upload" style={{
+                                    position: 'absolute',
+                                    bottom: '10px',
+                                    right: '10px',
+                                    background: 'var(--primary)',
+                                    color: 'white',
+                                    padding: '8px',
+                                    borderRadius: '50%',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: 'var(--shadow-md)'
+                                }}>
+                                    <Camera size={20} />
+                                    <input
+                                        type="file"
+                                        id="profile-upload"
+                                        hidden
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                    />
+                                </label>
+                            )}
+                        </div>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '16px' }}>
                         {isOwnProfile ? (
                             <button
-                                onClick={() => setIsEditing(!isEditing)}
+                                onClick={() => {
+                                    setIsEditing(!isEditing);
+                                    setProfileFile(null);
+                                }}
                                 style={{ padding: '8px 16px', borderRadius: '20px', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 600 }}
                             >
                                 {isEditing ? 'Cancel' : 'Edit Profile'}
@@ -90,13 +135,13 @@ const Profile = () => {
                                 style={{
                                     padding: '8px 24px',
                                     borderRadius: '20px',
-                                    background: profileUser.followers.includes(currentUser?._id) ? 'transparent' : 'var(--primary)',
-                                    color: profileUser.followers.includes(currentUser?._id) ? 'var(--text-muted)' : 'white',
-                                    border: profileUser.followers.includes(currentUser?._id) ? '1px solid var(--text-muted)' : 'none',
+                                    background: profileUser.followers?.some(f => (f._id || f) === currentUser?._id) ? 'transparent' : 'var(--primary)',
+                                    color: profileUser.followers?.some(f => (f._id || f) === currentUser?._id) ? 'var(--text-muted)' : 'white',
+                                    border: profileUser.followers?.some(f => (f._id || f) === currentUser?._id) ? '1px solid var(--text-muted)' : 'none',
                                     fontWeight: 600
                                 }}
                             >
-                                {profileUser.followers?.includes(currentUser?._id) ? 'Following' : 'Follow'}
+                                {profileUser.followers?.some(f => (f._id || f) === currentUser?._id) ? 'Following' : 'Follow'}
                             </button>
                         )}
                     </div>
@@ -128,6 +173,7 @@ const Profile = () => {
                             onChange={e => setEditData({ ...editData, bio: e.target.value })}
                             style={{ ...inputStyle, minHeight: '80px', resize: 'none' }}
                         />
+                        {profileFile && <p style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>New picture selected: {profileFile.name}</p>}
                         <button type="submit" style={{ background: 'var(--primary)', color: 'white', padding: '10px', borderRadius: '20px', fontWeight: 600 }}>
                             Save Changes
                         </button>

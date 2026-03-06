@@ -13,10 +13,11 @@ const Home = () => {
     const [content, setContent] = useState('');
     const [image, setImage] = useState(null);
     const [isPosting, setIsPosting] = useState(false);
+    const textareaRef = React.useRef(null);
 
     const fetchPosts = async () => {
         try {
-            const response = await api.get('/posts');
+            const response = await api.get('/posts/feed');
             setPosts(response.data);
         } catch (error) {
             toast.error('Failed to fetch posts');
@@ -39,9 +40,7 @@ const Home = () => {
         if (image) formData.append('image', image);
 
         try {
-            await api.post('/posts', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            await api.post('/posts', formData);
             setContent('');
             setImage(null);
             fetchPosts();
@@ -84,7 +83,7 @@ const Home = () => {
                     <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
                         <img src={user?.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'default'}`} style={{ width: '48px', height: '48px', borderRadius: '50%' }} />
                         <button
-                            onClick={() => { }}
+                            onClick={() => textareaRef.current?.focus()}
                             style={{
                                 flex: 1,
                                 textAlign: 'left',
@@ -109,6 +108,7 @@ const Home = () => {
                         <textarea
                             placeholder="What do you want to talk about?"
                             value={content}
+                            ref={textareaRef}
                             onChange={(e) => setContent(e.target.value)}
                             style={{
                                 width: '100%',
@@ -132,7 +132,7 @@ const Home = () => {
                             </label>
                             <button
                                 type="submit"
-                                disabled={isPosting || !content.trim()}
+                                disabled={isPosting || (!content.trim() && !image)}
                                 style={{
                                     background: 'var(--primary)',
                                     color: 'white',

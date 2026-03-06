@@ -13,6 +13,10 @@ const registerUser = async (req, res) => {
             return res.status(400).json({ message: 'User with this email or username already exists' });
         }
 
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({ username, email, password: hashedPassword });
         await newUser.save();
@@ -25,7 +29,9 @@ const registerUser = async (req, res) => {
                 username: newUser.username,
                 email: newUser.email,
                 profilePicture: newUser.profilePicture,
-                bio: newUser.bio
+                bio: newUser.bio,
+                followers: [],
+                following: []
             }
         });
     } catch (error) {
@@ -82,7 +88,10 @@ const updateProfile = async (req, res) => {
         if (req.file) {
             updateData.profilePicture = req.file.path;
         }
-        const user = await User.findByIdAndUpdate(req.user.id, updateData, { new: true }).select('-password');
+        const user = await User.findByIdAndUpdate(req.user.id, updateData, { new: true })
+            .select('-password')
+            .populate('followers', 'username profilePicture')
+            .populate('following', 'username profilePicture');
         res.json(user);
     } catch (error) {
         res.status(500).json({ message: error.message });

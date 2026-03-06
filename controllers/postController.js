@@ -6,8 +6,8 @@ const User = require('../database/models/User');
 const createPost = async (req, res) => {
     try {
         const { text } = req.body;
-        if (!text || text.trim() === '') {
-            return res.status(400).json({ message: 'Post text is required' });
+        if ((!text || text.trim() === '') && !req.file) {
+            return res.status(400).json({ message: 'Post content or image is required' });
         }
         const image = req.file ? req.file.path : '';
         const newPost = new Post({ user: req.user.id, text, image });
@@ -45,7 +45,10 @@ const likePost = async (req, res) => {
             post.likes.push(req.user.id);
         }
         await post.save();
-        res.json(post);
+        const updatedPost = await Post.findById(post._id)
+            .populate('user', 'username profilePicture')
+            .populate('comments.user', 'username profilePicture');
+        res.json(updatedPost);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

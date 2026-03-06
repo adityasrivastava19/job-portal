@@ -49,9 +49,7 @@ const PostCard = ({ post, onUpdate }) => {
                                 {post.user?.bio?.substring(0, 50) || 'Professional'}
                             </p>
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                {/* formatDistanceToNow requires date-fns, I'll use a simpler version if not available, 
-                   but let's assumes I can add it or just use a placeholder */}
-                                Just now
+                                {post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) + ' ago' : 'Just now'}
                             </p>
                         </div>
                     </div>
